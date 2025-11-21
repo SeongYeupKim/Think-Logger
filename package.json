@@ -1,0 +1,23 @@
+{
+  "name": "think-logger",
+  "version": "2.0.0",
+  "description": "A time stamp recorder to capture learners' processing with color-coded categories",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "timestamp",
+    "recorder",
+    "learning",
+    "research",
+    "education"
+  ],
+  "author": "SeongYeup Kim",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SeongYeupKim/Think-Logger.git"
+  }
+}
+

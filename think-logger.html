@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Think-Logger_v2 (Eng. version) by SeongYeup Kim </title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;line-height:1.5}
+    h1{font-size:20px;margin:0 0 12px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
+    label{font-weight:600;font-size:12px;color:#444}
+    input[type="text"],input[type="number"],input[type="color"]{padding:8px;border:1px solid #ccc;border-radius:8px}
+    button{padding:10px 14px;border-radius:10px;border:1px solid #bbb;background:#f7f7f7;cursor:pointer}
+    button.primary{background:#111;color:#fff;border-color:#111}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid #ccc;margin:4px 6px 0 0;font-size:12px}
+    .flex{display:flex;gap:12px;flex-wrap:wrap}
+    .muted{color:#666;font-size:12px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:13px}
+    .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f2f2f2;border:1px solid #ddd;border-bottom-width:2px;padding:2px 6px;border-radius:6px}
+    .note{min-width:240px}
+    .log-wrap{max-height:300px;overflow:auto;border:1px solid #eee;border-radius:10px;padding:6px}
+    .divider{height:1px;background:#eee;margin:12px 0}
+    .nowrap{white-space:nowrap}
+  </style>
+</head>
+<body>
+  <h1>Think-Logger (Recorder for the time stamp)</h1>
+  <div class="muted">This is a "Time stamp recorder" to capture learners' processing. Users can capture or flag learners' thoughts and process by letting them press a button (or corresponding keyboard shortkey) and classify them as colors.
+(This tool is copyrighted by SeongYeup Kim). <strong>Open-access tool</strong> - Share this HTML file via email to distribute to others.</div>
+  <div class="card" style="background:#f0f8ff;border-color:#4a90e2;">
+    <div style="font-size:13px;">
+      <strong>📧 How to Share via Email:</strong><br>
+      • To share the tool: Attach this HTML file to an email. Recipients can open it in any web browser.<br>
+      • To share results: Click "Email Export" button after recording a session to email your data.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="startBtn" class="primary">Session Start</button>
+      <button id="stopBtn" disabled>Session Finish</button>
+      <div><span class="muted">Time span:</span> <span id="elapsed">00:00.0</span></div>
+      <div class="muted"> On-time records are saved to the browser memory (Automated Save).</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="note">
+        <label for="noteInput">Memo or Note:</label><br>
+        <input id="noteInput" type="text" placeholder="Example: Evaluate source, Conceptual transition, and so forth..." style="width:100%">
+      </div>
+      <button id="undoBtn" title="마지막 기록 되돌리기" disabled>Back ⌫</button>
+      <button id="clearBtn" title="모든 기록 삭제" disabled>Detele all</button>
+    </div>
+    <div class="divider"></div>
+    <div><label>Processing type</label></div>
+    <div id="catButtons" class="flex"></div>
+    <div class="divider"></div>
+    <div class="row">
+      <label>Add new type</label>
+      <input id="newCatName" type="text" placeholder="Type name (Example: Analyze)">
+      <input id="newCatColor" type="color" value="#2f80ed">
+      <button id="addCatBtn">Add</button>
+      <button id="resetCatBtn" title="기본 분류로 되돌리기">Reset</button>
+    </div>
+    <div class="muted">Shortkey: 1-9 key is mapping to the "Processing type" correspondingly.</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="exportCsvBtn" disabled>CSV export</button>
+      <button id="exportJsonBtn" disabled>JSON copy</button>
+      <button id="copySummaryBtn" disabled>Summarize copy</button>
+      <button id="emailExportBtn" disabled>Email Export</button>
+    </div>
+    <div class="divider"></div>
+    <div><label>Timeline (Most recent)</label></div>
+    <div id="timeline" class="log-wrap"></div>
+    <div class="divider"></div>
+    <div><label>Logs</label></div>
+    <div class="log-wrap">
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Time point</th>
+            <th class="nowrap">Real time(ISO)</th>
+            <th>Type</th>
+            <th>Color</th>
+            <th>Memo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const defaultCats = [
+    {name:"Evaluation", color:"#eb5757"},
+    {name:"Integration", color:"#2f80ed"},
+  ];
+  let cats = JSON.parse(localStorage.getItem("thinklogger_cats")||"null") || defaultCats.slice();
+
+  let startedAt = null;
+  let timer = null;
+  let logs = []; // {ts:number, wall:string, elapsed:number, cat:string, color:string, note:string}
+
+  const el = id => document.getElementById(id);
+  const startBtn = el("startBtn");
+  const stopBtn = el("stopBtn");
+  const undoBtn = el("undoBtn");
+  const clearBtn = el("clearBtn");
+  const exportCsvBtn = el("exportCsvBtn");
+  const exportJsonBtn = el("exportJsonBtn");
+  const copySummaryBtn = el("copySummaryBtn");
+  const emailExportBtn = el("emailExportBtn");
+  const elapsedEl = el("elapsed");
+  const noteInput = el("noteInput");
+  const catButtons = el("catButtons");
+  const timeline = el("timeline");
+  const tableBody = el("logTable").querySelector("tbody");
+
+  function fmtElapsed(sec){
+    const m = Math.floor(sec/60);
+    const s = Math.floor(sec%60);
+    const ms = Math.floor((sec-Math.floor(sec))*10);
+    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${ms}`;
+  }
+
+  function renderCats(){
+    catButtons.innerHTML = "";
+    cats.slice(0,9).forEach((c,idx)=>{
+      const b = document.createElement("button");
+      b.style.borderColor = c.color;
+      b.style.background = c.color + "20";
+      b.innerHTML = `<span class="kbd">${idx+1}</span> ${c.name}`;
+      b.addEventListener("click",()=> addLog(c.name, c.color));
+      catButtons.appendChild(b);
+    });
+    localStorage.setItem("thinklogger_cats", JSON.stringify(cats));
+  }
+
+  function addLog(cat, color){
+    if(!startedAt) return;
+    const now = Date.now();
+    const elapsed = (now - startedAt)/1000;
+    const wallIso = new Date(now).toISOString();
+    const note = (noteInput.value||"").trim();
+    const rec = {ts: now, wall: wallIso, elapsed, cat, color, note};
+    logs.push(rec);
+    noteInput.value = "";
+
+    const pill = document.createElement("span");
+    pill.className = "pill";
+    pill.style.borderColor = color;
+    pill.style.background = color + "20";
+    pill.innerHTML = `<span style="width:.9em;height:.9em;border-radius:50%;background:${color};display:inline-block"></span>
+                      <strong>${cat}</strong> @ ${fmtElapsed(elapsed)} ${note?(" — "+note):""}`;
+    timeline.prepend(pill);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${logs.length}</td>
+                    <td class="nowrap">${fmtElapsed(elapsed)}</td>
+                    <td class="nowrap">${wallIso}</td>
+                    <td>${cat}</td>
+                    <td><span class="pill" style="border-color:${color};background:${color}20"><span style="width:.9em;height:.9em;border-radius:50%;background:${color};display:inline-block"></span> ${color}</span></td>
+                    <td>${note||""}</td>`;
+    tableBody.appendChild(tr);
+
+    updateButtons();
+    saveSession();
+  }
+
+  function updateButtons(){
+    const active = !!startedAt;
+    stopBtn.disabled = !active;
+    undoBtn.disabled = logs.length===0;
+    clearBtn.disabled = logs.length===0;
+    exportCsvBtn.disabled = logs.length===0;
+    exportJsonBtn.disabled = logs.length===0;
+    copySummaryBtn.disabled = logs.length===0;
+    emailExportBtn.disabled = logs.length===0;
+  }
+
+  function tick(){
+    if(!startedAt) return;
+    const sec = (Date.now()-startedAt)/1000;
+    elapsedEl.textContent = fmtElapsed(sec);
+  }
+
+  function start(){
+    if(startedAt) return;
+    startedAt = Date.now();
+    timer = setInterval(tick, 100);
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    elapsedEl.textContent = "00:00.0";
+    logs = [];
+    timeline.innerHTML = "";
+    tableBody.innerHTML = "";
+    saveSession(true);
+    updateButtons();
+  }
+
+  function stop(){
+    if(!startedAt) return;
+    clearInterval(timer);
+    timer = null;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    startedAt = null;
+    updateButtons();
+    saveSession();
+  }
+
+  function undo(){
+    if(logs.length===0) return;
+    logs.pop();
+    // rebuild UI
+    timeline.innerHTML = "";
+    tableBody.innerHTML = "";
+    logs.forEach((r,i)=>{
+      const pill = document.createElement("span");
+      pill.className = "pill";
+      pill.style.borderColor = r.color;
+      pill.style.background = r.color + "20";
+      pill.innerHTML = `<span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span>
+                        <strong>${r.cat}</strong> @ ${fmtElapsed(r.elapsed)} ${r.note?(" — "+r.note):""}`;
+      timeline.prepend(pill);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${i+1}</td>
+                      <td class="nowrap">${fmtElapsed(r.elapsed)}</td>
+                      <td class="nowrap">${r.wall}</td>
+                      <td>${r.cat}</td>
+                      <td><span class="pill" style="border-color:${r.color};background:${r.color}20"><span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span> ${r.color}</span></td>
+                      <td>${r.note||""}</td>`;
+      tableBody.appendChild(tr);
+    });
+    updateButtons();
+    saveSession();
+  }
+
+  function clearAll(){
+    if(!confirm("모든 기록을 삭제할까요?")) return;
+    logs = [];
+    timeline.innerHTML = "";
+    tableBody.innerHTML = "";
+    updateButtons();
+    saveSession();
+  }
+
+  function saveSession(reset=false){
+    const data = { startedAt, logs };
+    localStorage.setItem("thinklogger_last", JSON.stringify(data));
+  }
+
+  function loadSession(){
+    try{
+      const raw = localStorage.getItem("thinklogger_last");
+      if(!raw) return;
+      const data = JSON.parse(raw);
+      if(data.startedAt){
+        startedAt = data.startedAt;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        timer = setInterval(tick, 100);
+      }
+      logs = data.logs||[];
+      logs.forEach((r,i)=>{
+        const pill = document.createElement("span");
+        pill.className = "pill";
+        pill.style.borderColor = r.color;
+        pill.style.background = r.color + "20";
+        pill.innerHTML = `<span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span>
+                          <strong>${r.cat}</strong> @ ${fmtElapsed(r.elapsed)} ${r.note?(" — "+r.note):""}`;
+        timeline.prepend(pill);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${i+1}</td>
+                        <td class="nowrap">${fmtElapsed(r.elapsed)}</td>
+                        <td class="nowrap">${r.wall}</td>
+                        <td>${r.cat}</td>
+                        <td><span class="pill" style="border-color:${r.color};background:${r.color}20"><span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span> ${r.color}</span></td>
+                        <td>${r.note||""}</td>`;
+        tableBody.appendChild(tr);
+      });
+      updateButtons();
+    }catch(e){}
+  }
+
+  function toCSV(){
+    const header = ["elapsed_seconds","wall_clock_iso","category","color","note"];
+    const rows = logs.map(r=>[r.elapsed.toFixed(1), r.wall, r.cat, r.color, (r.note||"").replace(/"/g,'""')]);
+    const csv = [header.join(","), ...rows.map(row=>row.map(v=>`"${String(v)}"`).join(","))].join("\n");
+    return csv;
+  }
+
+  function download(filename, text){
+    const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+
+  // Event bindings
+  startBtn.addEventListener("click", start);
+  stopBtn.addEventListener("click", stop);
+  undoBtn.addEventListener("click", undo);
+  clearBtn.addEventListener("click", clearAll);
+  exportCsvBtn.addEventListener("click", ()=> download(`think-logger-${new Date().toISOString().slice(0,19)}.csv`, toCSV()));
+  exportJsonBtn.addEventListener("click", ()=> {
+    const text = JSON.stringify({logs}, null, 2);
+    navigator.clipboard.writeText(text);
+    alert("JSON이 클립보드에 복사되었어요.");
+  });
+  copySummaryBtn.addEventListener("click", ()=> {
+    const byCat = {};
+    logs.forEach(r=>{byCat[r.cat]=(byCat[r.cat]||0)+1});
+    const lines = ["요약(개수)"];
+    Object.keys(byCat).forEach(k=>lines.push(`${k}: ${byCat[k]}회`));
+    navigator.clipboard.writeText(lines.join("\n"));
+    alert("요약이 클립보드에 복사되었어요.");
+  });
+
+  emailExportBtn.addEventListener("click", ()=> {
+    if(logs.length===0) return;
+    
+    // Create formatted email body
+    const byCat = {};
+    logs.forEach(r=>{byCat[r.cat]=(byCat[r.cat]||0)+1});
+    
+    let body = "Think-Logger Session Results\n";
+    body += "=".repeat(50) + "\n\n";
+    body += `Session Date: ${new Date().toLocaleString()}\n`;
+    body += `Total Records: ${logs.length}\n\n`;
+    
+    body += "Summary by Category:\n";
+    body += "-".repeat(30) + "\n";
+    Object.keys(byCat).forEach(k=>body += `${k}: ${byCat[k]} times\n`);
+    body += "\n";
+    
+    body += "Detailed Log:\n";
+    body += "-".repeat(30) + "\n";
+    logs.forEach((r,i)=>{
+      body += `${i+1}. [${fmtElapsed(r.elapsed)}] ${r.cat} - ${r.note||"(no note)"}\n`;
+      body += `   Time: ${r.wall}\n`;
+    });
+    body += "\n";
+    
+    body += "CSV Data (attached format):\n";
+    body += "-".repeat(30) + "\n";
+    body += toCSV();
+    
+    // Create mailto link
+    const subject = encodeURIComponent(`Think-Logger Results - ${new Date().toISOString().slice(0,10)}`);
+    const emailBody = encodeURIComponent(body);
+    const mailtoLink = `mailto:?subject=${subject}&body=${emailBody}`;
+    
+    // Open email client
+    window.location.href = mailtoLink;
+  });
+
+  // Category controls
+  document.getElementById("addCatBtn").addEventListener("click", ()=>{
+    const name = (document.getElementById("newCatName").value||"").trim();
+    const color = document.getElementById("newCatColor").value||"#888888";
+    if(!name) return alert("분류명을 입력해주세요.");
+    cats.push({name, color});
+    document.getElementById("newCatName").value="";
+    renderCats();
+  });
+  document.getElementById("resetCatBtn").addEventListener("click", ()=>{
+    if(!confirm("분류 버튼을 기본값으로 되돌릴까요?")) return;
+    cats = defaultCats.slice();
+    renderCats();
+  });
+
+  // Keyboard shortcuts 1..9
+  window.addEventListener("keydown", (e)=>{
+    const idx = parseInt(e.key,10);
+    if(!isNaN(idx) && idx>=1 && idx<=9){
+      const c = cats[idx-1];
+      if(c){ addLog(c.name, c.color); e.preventDefault(); }
+    }
+  });
+
+  // Render
+  renderCats();
+  loadSession();
+  updateButtons();
+})();
+</script>
+</body>
+</html>
