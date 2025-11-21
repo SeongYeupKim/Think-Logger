@@ -305,6 +305,25 @@
       gap:8px;
       justify-content:flex-end;
     }
+    .quick-memo-section{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      margin-bottom:16px;
+    }
+    .quick-memo-box{
+      flex:1;
+      min-width:200px;
+    }
+    .quick-memo-box label{
+      font-size:12px;
+      margin-bottom:4px;
+    }
+    .quick-memo-hint{
+      font-size:11px;
+      color:#999;
+      margin-top:4px;
+    }
   </style>
 </head>
 <body>
@@ -336,16 +355,28 @@
     <div class="card">
       <div class="row">
         <div class="note">
-          <label for="noteInput">Memo or Note</label>
-          <input id="noteInput" type="text" placeholder="e.g., Evaluate source, Conceptual transition..." style="width:100%">
+          <label for="noteInput">Additional Memo or Note</label>
+          <input id="noteInput" type="text" placeholder="Type additional details here (optional)..." style="width:100%">
+          <div class="muted" style="margin-top:4px;font-size:11px;">
+            💬 You can type additional information here to provide more context for your entries
+          </div>
         </div>
         <button id="undoBtn" title="Undo last entry" disabled>↶ Undo</button>
         <button id="clearBtn" class="danger" title="Delete all records" disabled>🗑️ Clear All</button>
       </div>
       <div class="divider"></div>
-      <div>
-        <label>Processing Types</label>
-        <div id="catButtons" class="flex" style="margin-top:12px;"></div>
+      <div class="quick-memo-section">
+        <div class="quick-memo-box">
+          <label for="quickMemoInput">⚡ Quick Memo</label>
+          <input id="quickMemoInput" type="text" placeholder="Quick note (press Enter with number key 1-9 to log)" style="width:100%">
+          <div class="quick-memo-hint">
+            Type a quick memo, then press <kbd>1-9</kbd> to log with that category, or <kbd>Enter</kbd> to log with the first category
+          </div>
+        </div>
+        <div style="flex:2;">
+          <label>Processing Types</label>
+          <div id="catButtons" class="flex" style="margin-top:12px;"></div>
+        </div>
       </div>
       <div class="divider"></div>
       <div>
@@ -356,7 +387,7 @@
           <button id="addCatBtn" class="primary">+ Add</button>
         </div>
         <div class="muted" style="margin-top:8px;">
-          💡 <strong>Tip:</strong> Press number keys 1-9 to quickly log entries. All categories can be edited (including defaults). Default types cannot be deleted.
+          💡 <strong>Tip:</strong> Use the Quick Memo field for fast logging: type a note, then press <kbd>1-9</kbd> to log with that category, or <kbd>Enter</kbd> to log with the first category. All categories can be edited (including defaults). Default types cannot be deleted.
         </div>
       </div>
     </div>
@@ -460,6 +491,7 @@
   const emailExportBtn = el("emailExportBtn");
   const elapsedEl = el("elapsed");
   const noteInput = el("noteInput");
+  const quickMemoInput = el("quickMemoInput");
   const catButtons = el("catButtons");
   const timeline = el("timeline");
   const tableBody = el("logTable").querySelector("tbody");
@@ -618,15 +650,24 @@
     if(e.key === "Enter") saveCategoryEdit();
   });
 
-  function addLog(cat, color){
+  function addLog(cat, color, useQuickMemo = false){
     if(!startedAt) return;
     const now = Date.now();
     const elapsed = (now - startedAt)/1000;
     const wallIso = new Date(now).toISOString();
-    const note = (noteInput.value||"").trim();
+    // Check quick memo first if requested, otherwise use regular note input
+    let note = "";
+    if(useQuickMemo){
+      note = (quickMemoInput.value||"").trim();
+      quickMemoInput.value = "";
+    } else {
+      // Check quick memo first, then regular note
+      note = (quickMemoInput.value||"").trim() || (noteInput.value||"").trim();
+      if(quickMemoInput.value.trim()) quickMemoInput.value = "";
+      noteInput.value = "";
+    }
     const rec = {ts: now, wall: wallIso, elapsed, cat, color, note};
     logs.push(rec);
-    noteInput.value = "";
 
     const pill = document.createElement("span");
     pill.className = "pill";
@@ -859,12 +900,46 @@
     renderCats();
   });
 
-  // Keyboard shortcuts 1..9
+  // Keyboard shortcuts 1..9 - use quick memo if available
   window.addEventListener("keydown", (e)=>{
+    // Don't intercept if user is typing in an input field (except quick memo)
+    const activeEl = document.activeElement;
+    if(activeEl && activeEl.tagName === "INPUT" && activeEl !== quickMemoInput && activeEl !== noteInput){
+      return;
+    }
+    
     const idx = parseInt(e.key,10);
     if(!isNaN(idx) && idx>=1 && idx<=9){
       const c = cats[idx-1];
-      if(c){ addLog(c.name, c.color); e.preventDefault(); }
+      if(c){ 
+        // Use quick memo if it has content, otherwise use regular note
+        const hasQuickMemo = quickMemoInput.value.trim().length > 0;
+        addLog(c.name, c.color, hasQuickMemo); 
+        e.preventDefault(); 
+      }
+    }
+  });
+  
+  // Enter key in quick memo field - log with first category
+  quickMemoInput.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter" && startedAt && cats.length > 0){
+      e.preventDefault();
+      const firstCat = cats[0];
+      addLog(firstCat.name, firstCat.color, true);
+      quickMemoInput.focus(); // Keep focus for quick entry
+    }
+  });
+  
+  // Number keys in quick memo field - log with corresponding category
+  quickMemoInput.addEventListener("keydown", (e)=>{
+    const idx = parseInt(e.key,10);
+    if(!isNaN(idx) && idx>=1 && idx<=9){
+      const c = cats[idx-1];
+      if(c){
+        e.preventDefault();
+        addLog(c.name, c.color, true);
+        quickMemoInput.focus(); // Keep focus for quick entry
+      }
     }
   });
 
