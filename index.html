@@ -265,6 +265,46 @@
       align-items:center;
       margin-top:8px;
     }
+    .modal{
+      display:none;
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      background:rgba(0,0,0,0.5);
+      z-index:1000;
+      align-items:center;
+      justify-content:center;
+    }
+    .modal.active{
+      display:flex;
+    }
+    .modal-content{
+      background:#fff;
+      padding:24px;
+      border-radius:16px;
+      max-width:400px;
+      width:90%;
+      box-shadow:0 10px 40px rgba(0,0,0,0.2);
+    }
+    .modal-content h3{
+      margin:0 0 16px;
+      font-size:18px;
+    }
+    .modal-content label{
+      display:block;
+      margin-bottom:8px;
+    }
+    .modal-content input{
+      width:100%;
+      margin-bottom:16px;
+    }
+    .modal-actions{
+      display:flex;
+      gap:8px;
+      justify-content:flex-end;
+    }
   </style>
 </head>
 <body>
@@ -316,8 +356,25 @@
           <button id="addCatBtn" class="primary">+ Add</button>
         </div>
         <div class="muted" style="margin-top:8px;">
-          💡 <strong>Tip:</strong> Press number keys 1-9 to quickly log entries. Default types (Evaluation, Integration) cannot be deleted but can be edited.
+          💡 <strong>Tip:</strong> Press number keys 1-9 to quickly log entries. All categories can be edited (including defaults). Default types cannot be deleted.
         </div>
+      </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <h3>Edit Category</h3>
+        <label for="editCatName">Category Name</label>
+        <input id="editCatName" type="text" placeholder="Category name">
+        <label for="editCatColor">Color</label>
+        <input id="editCatColor" type="color" value="#3b82f6">
+        <div class="modal-actions">
+          <button id="cancelEditBtn" class="secondary">Cancel</button>
+          <button id="saveEditBtn" class="primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
       </div>
     </div>
 
@@ -441,27 +498,30 @@
       b.addEventListener("click",()=> addLog(c.name, c.color));
       wrapper.appendChild(b);
       
-      // Add edit/delete buttons for custom categories
+      // Add edit button for all categories
+      const actions = document.createElement("div");
+      actions.className = "cat-actions";
+      actions.style.position = "absolute";
+      actions.style.top = "-8px";
+      actions.style.right = "-8px";
+      
+      const editBtn = document.createElement("button");
+      editBtn.textContent = "✏️";
+      editBtn.title = "Edit category";
+      editBtn.style.padding = "4px 6px";
+      editBtn.style.fontSize = "10px";
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        openEditModal(idx);
+      };
+      
+      actions.appendChild(editBtn);
+      
+      // Add delete button only for custom categories
       if(!c.isDefault){
-        const actions = document.createElement("div");
-        actions.className = "cat-actions";
-        actions.style.position = "absolute";
-        actions.style.top = "-8px";
-        actions.style.right = "-8px";
-        
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "✏️";
-        editBtn.title = "Edit";
-        editBtn.style.padding = "4px 6px";
-        editBtn.style.fontSize = "10px";
-        editBtn.onclick = (e) => {
-          e.stopPropagation();
-          editCategory(idx);
-        };
-        
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑️";
-        delBtn.title = "Delete";
+        delBtn.title = "Delete category";
         delBtn.className = "danger";
         delBtn.style.padding = "4px 6px";
         delBtn.style.fontSize = "10px";
@@ -469,11 +529,10 @@
           e.stopPropagation();
           deleteCategory(idx);
         };
-        
-        actions.appendChild(editBtn);
         actions.appendChild(delBtn);
-        wrapper.appendChild(actions);
       }
+      
+      wrapper.appendChild(actions);
       
       catButtons.appendChild(wrapper);
     });
@@ -491,46 +550,73 @@
       (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
   }
 
-  function editCategory(index){
+  function openEditModal(index){
     const cat = cats[index];
-    if(cat.isDefault){
-      // Allow editing default categories
-      const newName = prompt("Edit category name:", cat.name);
-      if(newName && newName.trim() && newName.trim() !== cat.name){
-        cat.name = newName.trim();
-        renderCats();
-      }
-      const newColor = prompt("Edit color (hex code, e.g., #3b82f6):", cat.color);
-      if(newColor && /^#[0-9A-F]{6}$/i.test(newColor)){
-        cat.color = newColor.toUpperCase();
-        renderCats();
-      }
-    } else {
-      editingCatIndex = index;
-      const newName = prompt("Edit category name:", cat.name);
-      if(newName && newName.trim()){
-        cat.name = newName.trim();
-        const newColor = prompt("Edit color (hex code):", cat.color);
-        if(newColor && /^#[0-9A-F]{6}$/i.test(newColor)){
-          cat.color = newColor.toUpperCase();
-        }
-        renderCats();
-      }
-      editingCatIndex = null;
+    editingCatIndex = index;
+    el("editCatName").value = cat.name;
+    el("editCatColor").value = cat.color;
+    el("editModal").classList.add("active");
+    el("editCatName").focus();
+  }
+
+  function closeEditModal(){
+    el("editModal").classList.remove("active");
+    editingCatIndex = null;
+  }
+
+  function saveCategoryEdit(){
+    if(editingCatIndex === null) return;
+    const cat = cats[editingCatIndex];
+    const newName = el("editCatName").value.trim();
+    const newColor = el("editCatColor").value.toUpperCase();
+    
+    if(!newName){
+      alert("Please enter a category name.");
+      return;
     }
+    
+    // Check for duplicate names (excluding current category)
+    if(cats.some((c, idx) => idx !== editingCatIndex && c.name.toLowerCase() === newName.toLowerCase())){
+      alert("A category with this name already exists.");
+      return;
+    }
+    
+    cat.name = newName;
+    cat.color = newColor;
+    renderCats();
+    closeEditModal();
   }
 
   function deleteCategory(index){
     const cat = cats[index];
     if(cat.isDefault){
-      alert("Default categories (Evaluation, Integration) cannot be deleted. You can edit them instead.");
+      alert("Default categories cannot be deleted. You can edit them instead.");
       return;
     }
-    if(confirm(`Delete "${cat.name}" category?`)){
+    if(confirm(`Delete "${cat.name}" category? This action cannot be undone.`)){
       cats.splice(index, 1);
       renderCats();
     }
   }
+  
+  // Modal event handlers
+  el("saveEditBtn").addEventListener("click", saveCategoryEdit);
+  el("cancelEditBtn").addEventListener("click", closeEditModal);
+  el("editModal").addEventListener("click", (e) => {
+    if(e.target === el("editModal")) closeEditModal();
+  });
+  
+  // Close modal on Escape key
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape" && el("editModal").classList.contains("active")){
+      closeEditModal();
+    }
+  });
+  
+  // Allow Enter key to save in modal
+  el("editCatName").addEventListener("keydown", (e) => {
+    if(e.key === "Enter") saveCategoryEdit();
+  });
 
   function addLog(cat, color){
     if(!startedAt) return;
