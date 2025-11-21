@@ -1,109 +1,396 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Think-Logger - Time Stamp Recorder by SeongYeup Kim</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="A time stamp recorder to capture learners' processing. Users can capture or flag learners' thoughts and process by pressing buttons or keyboard shortcuts and classify them with colors.">
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;line-height:1.5}
-    h1{font-size:20px;margin:0 0 12px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
-    label{font-weight:600;font-size:12px;color:#444}
-    input[type="text"],input[type="number"],input[type="color"]{padding:8px;border:1px solid #ccc;border-radius:8px}
-    button{padding:10px 14px;border-radius:10px;border:1px solid #bbb;background:#f7f7f7;cursor:pointer}
-    button.primary{background:#111;color:#fff;border-color:#111}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid #ccc;margin:4px 6px 0 0;font-size:12px}
-    .flex{display:flex;gap:12px;flex-wrap:wrap}
-    .muted{color:#666;font-size:12px}
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th,td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:13px}
-    .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f2f2f2;border:1px solid #ddd;border-bottom-width:2px;padding:2px 6px;border-radius:6px}
-    .note{min-width:240px}
-    .log-wrap{max-height:300px;overflow:auto;border:1px solid #eee;border-radius:10px;padding:6px}
-    .divider{height:1px;background:#eee;margin:12px 0}
+    *{box-sizing:border-box}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      margin:0;
+      padding:24px;
+      line-height:1.6;
+      background:#fafafa;
+      color:#333;
+    }
+    .container{max-width:1200px;margin:0 auto}
+    h1{
+      font-size:28px;
+      margin:0 0 8px;
+      font-weight:600;
+      color:#1a1a1a;
+    }
+    .subtitle{
+      color:#666;
+      font-size:14px;
+      margin-bottom:24px;
+    }
+    .row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .card{
+      border:1px solid #e0e0e0;
+      border-radius:16px;
+      padding:20px;
+      margin:16px 0;
+      background:#fff;
+      box-shadow:0 1px 3px rgba(0,0,0,0.05);
+      transition:box-shadow 0.2s;
+    }
+    .card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+    label{
+      font-weight:600;
+      font-size:13px;
+      color:#444;
+      display:block;
+      margin-bottom:6px;
+    }
+    input[type="text"],input[type="number"],input[type="color"]{
+      padding:10px 12px;
+      border:1px solid #d0d0d0;
+      border-radius:8px;
+      font-size:14px;
+      transition:border-color 0.2s;
+    }
+    input[type="text"]:focus,input[type="number"]:focus{
+      outline:none;
+      border-color:#4a90e2;
+      box-shadow:0 0 0 3px rgba(74,144,226,0.1);
+    }
+    input[type="color"]{
+      width:50px;
+      height:40px;
+      cursor:pointer;
+      border:2px solid #ddd;
+    }
+    button{
+      padding:10px 18px;
+      border-radius:10px;
+      border:1px solid #ccc;
+      background:#fff;
+      cursor:pointer;
+      font-size:14px;
+      font-weight:500;
+      transition:all 0.2s;
+      white-space:nowrap;
+    }
+    button:hover:not(:disabled){
+      background:#f5f5f5;
+      border-color:#999;
+      transform:translateY(-1px);
+    }
+    button:active:not(:disabled){transform:translateY(0)}
+    button.primary{
+      background:#2563eb;
+      color:#fff;
+      border-color:#2563eb;
+    }
+    button.primary:hover:not(:disabled){
+      background:#1d4ed8;
+      border-color:#1d4ed8;
+    }
+    button.danger{
+      background:#ef4444;
+      color:#fff;
+      border-color:#ef4444;
+    }
+    button.danger:hover:not(:disabled){
+      background:#dc2626;
+      border-color:#dc2626;
+    }
+    button.secondary{
+      background:#6b7280;
+      color:#fff;
+      border-color:#6b7280;
+    }
+    button.secondary:hover:not(:disabled){
+      background:#4b5563;
+      border-color:#4b5563;
+    }
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+      transform:none;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 14px;
+      border-radius:999px;
+      border:2px solid;
+      margin:4px 8px 4px 0;
+      font-size:13px;
+      font-weight:500;
+    }
+    .cat-button{
+      padding:12px 20px;
+      border-radius:12px;
+      border:2px solid;
+      font-size:14px;
+      font-weight:600;
+      cursor:pointer;
+      transition:all 0.2s;
+      position:relative;
+    }
+    .cat-button:hover{
+      transform:translateY(-2px);
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    }
+    .cat-button .kbd{
+      font-family:ui-monospace,Menlo,Consolas,monospace;
+      background:rgba(255,255,255,0.3);
+      border:1px solid rgba(255,255,255,0.5);
+      padding:2px 8px;
+      border-radius:6px;
+      font-size:12px;
+      font-weight:700;
+    }
+    .cat-actions{
+      display:inline-flex;
+      gap:4px;
+      margin-left:8px;
+    }
+    .cat-actions button{
+      padding:4px 8px;
+      font-size:11px;
+      min-width:auto;
+    }
+    .flex{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .muted{
+      color:#666;
+      font-size:13px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:8px;
+    }
+    th{
+      background:#f8f9fa;
+      font-weight:600;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+      color:#666;
+      padding:12px 8px;
+      text-align:left;
+      border-bottom:2px solid #e0e0e0;
+    }
+    td{
+      border-bottom:1px solid #eee;
+      padding:12px 8px;
+      font-size:13px;
+    }
+    tr:hover td{background:#f8f9fa}
+    .kbd{
+      font-family:ui-monospace,Menlo,Consolas,monospace;
+      background:#f2f2f2;
+      border:1px solid #ddd;
+      border-bottom-width:2px;
+      padding:3px 8px;
+      border-radius:6px;
+      font-size:12px;
+      font-weight:600;
+    }
+    .note{min-width:280px}
+    .log-wrap{
+      max-height:400px;
+      overflow:auto;
+      border:1px solid #eee;
+      border-radius:12px;
+      padding:12px;
+      background:#fafafa;
+    }
+    .divider{
+      height:1px;
+      background:#e0e0e0;
+      margin:16px 0;
+    }
     .nowrap{white-space:nowrap}
+    .color-palette{
+      display:grid;
+      grid-template-columns:repeat(8,1fr);
+      gap:8px;
+      margin-top:8px;
+    }
+    .color-option{
+      width:100%;
+      aspect-ratio:1;
+      border-radius:8px;
+      border:2px solid #ddd;
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+    .color-option:hover{
+      transform:scale(1.1);
+      border-color:#333;
+      box-shadow:0 2px 8px rgba(0,0,0,0.2);
+    }
+    .status-indicator{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 12px;
+      border-radius:20px;
+      font-size:12px;
+      font-weight:500;
+    }
+    .status-indicator.active{
+      background:#dcfce7;
+      color:#166534;
+    }
+    .status-indicator.inactive{
+      background:#fee2e2;
+      color:#991b1b;
+    }
+    .status-dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:currentColor;
+    }
+    .edit-cat-form{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-top:8px;
+    }
   </style>
 </head>
 <body>
-  <h1>Think-Logger (Recorder for the time stamp)</h1>
-  <div class="muted">This is a "Time stamp recorder" to capture learners' processing. Users can capture or flag learners' thoughts and process by letting them press a button (or corresponding keyboard shortkey) and classify them as colors.
-(This tool is copyrighted by SeongYeup Kim). <strong>Open-access tool</strong> - Available online for free use.</div>
-
-  <div class="card">
-    <div class="row">
-      <button id="startBtn" class="primary">Session Start</button>
-      <button id="stopBtn" disabled>Session Finish</button>
-      <div><span class="muted">Time span:</span> <span id="elapsed">00:00.0</span></div>
-      <div class="muted"> On-time records are saved to the browser memory (Automated Save).</div>
+  <div class="container">
+    <h1>Think-Logger</h1>
+    <div class="subtitle">
+      A time stamp recorder to capture learners' processing. Capture thoughts and processes by pressing buttons or using keyboard shortcuts, and classify them with colors.
+      <br><small style="color:#999;">© SeongYeup Kim - Open-access tool</small>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="row">
-      <div class="note">
-        <label for="noteInput">Memo or Note:</label><br>
-        <input id="noteInput" type="text" placeholder="Example: Evaluate source, Conceptual transition, and so forth..." style="width:100%">
+    <div class="card">
+      <div class="row">
+        <button id="startBtn" class="primary">▶ Start Session</button>
+        <button id="stopBtn" disabled>■ Finish Session</button>
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot"></span>
+          <span id="statusText">Inactive</span>
+        </div>
+        <div style="margin-left:auto;">
+          <span class="muted">Elapsed:</span>
+          <strong id="elapsed" style="font-size:18px;font-family:monospace;">00:00.0</strong>
+        </div>
       </div>
-      <button id="undoBtn" title="마지막 기록 되돌리기" disabled>Back ⌫</button>
-      <button id="clearBtn" title="모든 기록 삭제" disabled>Detele all</button>
+      <div class="muted" style="margin-top:8px;">
+        💾 Records are automatically saved to browser storage
+      </div>
     </div>
-    <div class="divider"></div>
-    <div><label>Processing type</label></div>
-    <div id="catButtons" class="flex"></div>
-    <div class="divider"></div>
-    <div class="row">
-      <label>Add new type</label>
-      <input id="newCatName" type="text" placeholder="Type name (Example: Analyze)">
-      <input id="newCatColor" type="color" value="#2f80ed">
-      <button id="addCatBtn">Add</button>
-      <button id="resetCatBtn" title="기본 분류로 되돌리기">Reset</button>
-    </div>
-    <div class="muted">Shortkey: 1-9 key is mapping to the "Processing type" correspondingly.</div>
-  </div>
 
-  <div class="card">
-    <div class="row">
-      <button id="exportCsvBtn" disabled>CSV export</button>
-      <button id="exportJsonBtn" disabled>JSON copy</button>
-      <button id="copySummaryBtn" disabled>Summarize copy</button>
-      <button id="emailExportBtn" disabled>Email Export</button>
+    <div class="card">
+      <div class="row">
+        <div class="note">
+          <label for="noteInput">Memo or Note</label>
+          <input id="noteInput" type="text" placeholder="e.g., Evaluate source, Conceptual transition..." style="width:100%">
+        </div>
+        <button id="undoBtn" title="Undo last entry" disabled>↶ Undo</button>
+        <button id="clearBtn" class="danger" title="Delete all records" disabled>🗑️ Clear All</button>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <label>Processing Types</label>
+        <div id="catButtons" class="flex" style="margin-top:12px;"></div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <label>Add New Processing Type</label>
+        <div class="row" style="margin-top:8px;">
+          <input id="newCatName" type="text" placeholder="Type name (e.g., Analyze, Synthesize)" style="flex:1;min-width:200px;">
+          <input id="newCatColor" type="color" value="#3b82f6" title="Select color">
+          <button id="addCatBtn" class="primary">+ Add</button>
+        </div>
+        <div class="muted" style="margin-top:8px;">
+          💡 <strong>Tip:</strong> Press number keys 1-9 to quickly log entries. Default types (Evaluation, Integration) cannot be deleted but can be edited.
+        </div>
+      </div>
     </div>
-    <div class="divider"></div>
-    <div><label>Timeline (Most recent)</label></div>
-    <div id="timeline" class="log-wrap"></div>
-    <div class="divider"></div>
-    <div><label>Logs</label></div>
-    <div class="log-wrap">
-      <table id="logTable">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Time point</th>
-            <th class="nowrap">Real time(ISO)</th>
-            <th>Type</th>
-            <th>Color</th>
-            <th>Memo</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+
+    <div class="card">
+      <div class="row">
+        <button id="exportCsvBtn" disabled>📊 Export CSV</button>
+        <button id="exportJsonBtn" disabled>📋 Copy JSON</button>
+        <button id="copySummaryBtn" disabled>📝 Copy Summary</button>
+        <button id="emailExportBtn" disabled>✉️ Email Export</button>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <label>Timeline (Most Recent First)</label>
+        <div id="timeline" class="log-wrap" style="min-height:100px;"></div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <label>Detailed Logs</label>
+        <div class="log-wrap">
+          <table id="logTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time Point</th>
+                <th class="nowrap">Real Time (ISO)</th>
+                <th>Type</th>
+                <th>Color</th>
+                <th>Memo</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
 <script>
 (function(){
+  // Default categories (non-erasable)
   const defaultCats = [
-    {name:"Evaluation", color:"#eb5757"},
-    {name:"Integration", color:"#2f80ed"},
+    {name:"Evaluation", color:"#ef4444", isDefault:true},
+    {name:"Integration", color:"#3b82f6", isDefault:true},
   ];
-  let cats = JSON.parse(localStorage.getItem("thinklogger_cats")||"null") || defaultCats.slice();
+  
+  // Diverse color palette for suggestions
+  const colorPalette = [
+    "#ef4444", "#f59e0b", "#eab308", "#84cc16", "#22c55e",
+    "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6",
+    "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899",
+    "#f43f5e", "#64748b", "#475569", "#334155", "#1e293b"
+  ];
+  
+  let cats = JSON.parse(localStorage.getItem("thinklogger_cats")||"null");
+  if(!cats || !Array.isArray(cats) || cats.length === 0){
+    cats = defaultCats.map(c => ({...c}));
+  } else {
+    // Ensure default cats exist and are marked
+    const existingNames = cats.map(c => c.name);
+    defaultCats.forEach(dc => {
+      if(!existingNames.includes(dc.name)){
+        cats.unshift({...dc, isDefault:true});
+      } else {
+        const idx = cats.findIndex(c => c.name === dc.name);
+        if(idx >= 0) cats[idx].isDefault = true;
+      }
+    });
+  }
 
   let startedAt = null;
   let timer = null;
-  let logs = []; // {ts:number, wall:string, elapsed:number, cat:string, color:string, note:string}
+  let logs = [];
+  let editingCatIndex = null;
 
   const el = id => document.getElementById(id);
   const startBtn = el("startBtn");
@@ -119,6 +406,8 @@
   const catButtons = el("catButtons");
   const timeline = el("timeline");
   const tableBody = el("logTable").querySelector("tbody");
+  const statusIndicator = el("statusIndicator");
+  const statusText = el("statusText");
 
   function fmtElapsed(sec){
     const m = Math.floor(sec/60);
@@ -127,17 +416,120 @@
     return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${ms}`;
   }
 
+  function updateStatus(active){
+    if(active){
+      statusIndicator.className = "status-indicator active";
+      statusText.textContent = "Recording";
+    } else {
+      statusIndicator.className = "status-indicator inactive";
+      statusText.textContent = "Inactive";
+    }
+  }
+
   function renderCats(){
     catButtons.innerHTML = "";
     cats.slice(0,9).forEach((c,idx)=>{
+      const wrapper = document.createElement("div");
+      wrapper.style.position = "relative";
+      
       const b = document.createElement("button");
+      b.className = "cat-button";
       b.style.borderColor = c.color;
-      b.style.background = c.color + "20";
+      b.style.background = `linear-gradient(135deg, ${c.color} 0%, ${adjustBrightness(c.color, -20)} 100%)`;
+      b.style.color = "#fff";
       b.innerHTML = `<span class="kbd">${idx+1}</span> ${c.name}`;
       b.addEventListener("click",()=> addLog(c.name, c.color));
-      catButtons.appendChild(b);
+      wrapper.appendChild(b);
+      
+      // Add edit/delete buttons for custom categories
+      if(!c.isDefault){
+        const actions = document.createElement("div");
+        actions.className = "cat-actions";
+        actions.style.position = "absolute";
+        actions.style.top = "-8px";
+        actions.style.right = "-8px";
+        
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "✏️";
+        editBtn.title = "Edit";
+        editBtn.style.padding = "4px 6px";
+        editBtn.style.fontSize = "10px";
+        editBtn.onclick = (e) => {
+          e.stopPropagation();
+          editCategory(idx);
+        };
+        
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑️";
+        delBtn.title = "Delete";
+        delBtn.className = "danger";
+        delBtn.style.padding = "4px 6px";
+        delBtn.style.fontSize = "10px";
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteCategory(idx);
+        };
+        
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        wrapper.appendChild(actions);
+      }
+      
+      catButtons.appendChild(wrapper);
     });
     localStorage.setItem("thinklogger_cats", JSON.stringify(cats));
+  }
+
+  function adjustBrightness(hex, percent){
+    const num = parseInt(hex.replace("#",""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+  }
+
+  function editCategory(index){
+    const cat = cats[index];
+    if(cat.isDefault){
+      // Allow editing default categories
+      const newName = prompt("Edit category name:", cat.name);
+      if(newName && newName.trim() && newName.trim() !== cat.name){
+        cat.name = newName.trim();
+        renderCats();
+      }
+      const newColor = prompt("Edit color (hex code, e.g., #3b82f6):", cat.color);
+      if(newColor && /^#[0-9A-F]{6}$/i.test(newColor)){
+        cat.color = newColor.toUpperCase();
+        renderCats();
+      }
+    } else {
+      editingCatIndex = index;
+      const newName = prompt("Edit category name:", cat.name);
+      if(newName && newName.trim()){
+        cat.name = newName.trim();
+        const newColor = prompt("Edit color (hex code):", cat.color);
+        if(newColor && /^#[0-9A-F]{6}$/i.test(newColor)){
+          cat.color = newColor.toUpperCase();
+        }
+        renderCats();
+      }
+      editingCatIndex = null;
+    }
+  }
+
+  function deleteCategory(index){
+    const cat = cats[index];
+    if(cat.isDefault){
+      alert("Default categories (Evaluation, Integration) cannot be deleted. You can edit them instead.");
+      return;
+    }
+    if(confirm(`Delete "${cat.name}" category?`)){
+      cats.splice(index, 1);
+      renderCats();
+    }
   }
 
   function addLog(cat, color){
@@ -154,7 +546,8 @@
     pill.className = "pill";
     pill.style.borderColor = color;
     pill.style.background = color + "20";
-    pill.innerHTML = `<span style="width:.9em;height:.9em;border-radius:50%;background:${color};display:inline-block"></span>
+    pill.style.color = "#333";
+    pill.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block"></span>
                       <strong>${cat}</strong> @ ${fmtElapsed(elapsed)} ${note?(" — "+note):""}`;
     timeline.prepend(pill);
 
@@ -162,8 +555,8 @@
     tr.innerHTML = `<td>${logs.length}</td>
                     <td class="nowrap">${fmtElapsed(elapsed)}</td>
                     <td class="nowrap">${wallIso}</td>
-                    <td>${cat}</td>
-                    <td><span class="pill" style="border-color:${color};background:${color}20"><span style="width:.9em;height:.9em;border-radius:50%;background:${color};display:inline-block"></span> ${color}</span></td>
+                    <td><strong>${cat}</strong></td>
+                    <td><span class="pill" style="border-color:${color};background:${color}20;color:#333"><span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block"></span> ${color}</span></td>
                     <td>${note||""}</td>`;
     tableBody.appendChild(tr);
 
@@ -180,6 +573,7 @@
     exportJsonBtn.disabled = logs.length===0;
     copySummaryBtn.disabled = logs.length===0;
     emailExportBtn.disabled = logs.length===0;
+    updateStatus(active);
   }
 
   function tick(){
@@ -216,7 +610,6 @@
   function undo(){
     if(logs.length===0) return;
     logs.pop();
-    // rebuild UI
     timeline.innerHTML = "";
     tableBody.innerHTML = "";
     logs.forEach((r,i)=>{
@@ -224,15 +617,16 @@
       pill.className = "pill";
       pill.style.borderColor = r.color;
       pill.style.background = r.color + "20";
-      pill.innerHTML = `<span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span>
+      pill.style.color = "#333";
+      pill.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block"></span>
                         <strong>${r.cat}</strong> @ ${fmtElapsed(r.elapsed)} ${r.note?(" — "+r.note):""}`;
       timeline.prepend(pill);
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${i+1}</td>
                       <td class="nowrap">${fmtElapsed(r.elapsed)}</td>
                       <td class="nowrap">${r.wall}</td>
-                      <td>${r.cat}</td>
-                      <td><span class="pill" style="border-color:${r.color};background:${r.color}20"><span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span> ${r.color}</span></td>
+                      <td><strong>${r.cat}</strong></td>
+                      <td><span class="pill" style="border-color:${r.color};background:${r.color}20;color:#333"><span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block"></span> ${r.color}</span></td>
                       <td>${r.note||""}</td>`;
       tableBody.appendChild(tr);
     });
@@ -241,7 +635,7 @@
   }
 
   function clearAll(){
-    if(!confirm("모든 기록을 삭제할까요?")) return;
+    if(!confirm("Delete all records? This action cannot be undone.")) return;
     logs = [];
     timeline.innerHTML = "";
     tableBody.innerHTML = "";
@@ -271,15 +665,16 @@
         pill.className = "pill";
         pill.style.borderColor = r.color;
         pill.style.background = r.color + "20";
-        pill.innerHTML = `<span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span>
+        pill.style.color = "#333";
+        pill.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block"></span>
                           <strong>${r.cat}</strong> @ ${fmtElapsed(r.elapsed)} ${r.note?(" — "+r.note):""}`;
         timeline.prepend(pill);
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${i+1}</td>
                         <td class="nowrap">${fmtElapsed(r.elapsed)}</td>
                         <td class="nowrap">${r.wall}</td>
-                        <td>${r.cat}</td>
-                        <td><span class="pill" style="border-color:${r.color};background:${r.color}20"><span style="width:.9em;height:.9em;border-radius:50%;background:${r.color};display:inline-block"></span> ${r.color}</span></td>
+                        <td><strong>${r.cat}</strong></td>
+                        <td><span class="pill" style="border-color:${r.color};background:${r.color}20;color:#333"><span style="width:10px;height:10px;border-radius:50%;background:${r.color};display:inline-block"></span> ${r.color}</span></td>
                         <td>${r.note||""}</td>`;
         tableBody.appendChild(tr);
       });
@@ -315,21 +710,20 @@
   exportJsonBtn.addEventListener("click", ()=> {
     const text = JSON.stringify({logs}, null, 2);
     navigator.clipboard.writeText(text);
-    alert("JSON이 클립보드에 복사되었어요.");
+    alert("JSON copied to clipboard!");
   });
   copySummaryBtn.addEventListener("click", ()=> {
     const byCat = {};
     logs.forEach(r=>{byCat[r.cat]=(byCat[r.cat]||0)+1});
-    const lines = ["요약(개수)"];
-    Object.keys(byCat).forEach(k=>lines.push(`${k}: ${byCat[k]}회`));
+    const lines = ["Summary (Count)"];
+    Object.keys(byCat).forEach(k=>lines.push(`${k}: ${byCat[k]} times`));
     navigator.clipboard.writeText(lines.join("\n"));
-    alert("요약이 클립보드에 복사되었어요.");
+    alert("Summary copied to clipboard!");
   });
 
   emailExportBtn.addEventListener("click", ()=> {
     if(logs.length===0) return;
     
-    // Create formatted email body
     const byCat = {};
     logs.forEach(r=>{byCat[r.cat]=(byCat[r.cat]||0)+1});
     
@@ -351,16 +745,14 @@
     });
     body += "\n";
     
-    body += "CSV Data (attached format):\n";
+    body += "CSV Data:\n";
     body += "-".repeat(30) + "\n";
     body += toCSV();
     
-    // Create mailto link
     const subject = encodeURIComponent(`Think-Logger Results - ${new Date().toISOString().slice(0,10)}`);
     const emailBody = encodeURIComponent(body);
     const mailtoLink = `mailto:?subject=${subject}&body=${emailBody}`;
     
-    // Open email client
     window.location.href = mailtoLink;
   });
 
@@ -368,14 +760,16 @@
   document.getElementById("addCatBtn").addEventListener("click", ()=>{
     const name = (document.getElementById("newCatName").value||"").trim();
     const color = document.getElementById("newCatColor").value||"#888888";
-    if(!name) return alert("분류명을 입력해주세요.");
-    cats.push({name, color});
-    document.getElementById("newCatName").value="";
-    renderCats();
-  });
-  document.getElementById("resetCatBtn").addEventListener("click", ()=>{
-    if(!confirm("분류 버튼을 기본값으로 되돌릴까요?")) return;
-    cats = defaultCats.slice();
+    if(!name) return alert("Please enter a category name.");
+    if(cats.length >= 9) return alert("Maximum 9 categories allowed (for keyboard shortcuts 1-9).");
+    if(cats.some(c => c.name.toLowerCase() === name.toLowerCase())){
+      return alert("A category with this name already exists.");
+    }
+    cats.push({name, color: color.toUpperCase(), isDefault: false});
+    document.getElementById("newCatName").value = "";
+    // Suggest next color from palette
+    const nextColor = colorPalette[cats.length % colorPalette.length];
+    document.getElementById("newCatColor").value = nextColor;
     renderCats();
   });
 
@@ -388,12 +782,14 @@
     }
   });
 
-  // Render
+  // Initialize
   renderCats();
   loadSession();
   updateButtons();
+  
+  // Set initial color from palette
+  document.getElementById("newCatColor").value = colorPalette[2];
 })();
 </script>
 </body>
 </html>
-
